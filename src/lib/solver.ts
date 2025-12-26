@@ -1,6 +1,7 @@
 import { WORDS } from "../data/wordle/words";
+import { LetterStatus, WordleGuess } from "../types/wordle";
 
-type Constraints = {
+export type Constraints = {
   absent: string[];
   present: string[];
   incorrect: Record<number, string[]>;
@@ -90,4 +91,18 @@ const letterFreq = (words: string[]) => {
     }
   }
   return freq;
+};
+
+export const guessResult = (guess: string, solution: string) => {
+  const result: WordleGuess = [];
+  for (let i = 0; i < guess.length; i++) {
+    if (guess[i] === solution[i]) {
+      result[i] = { letter: guess[i], status: LetterStatus.correct };
+    } else if (solution.includes(guess[i])) {
+      result[i] = { letter: guess[i], status: LetterStatus.present };
+    } else {
+      result[i] = { letter: guess[i], status: LetterStatus.absent };
+    }
+  }
+  return result;
 };

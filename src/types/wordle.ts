@@ -8,6 +8,7 @@ export enum LetterStatus {
   "absent",
   "present",
   "correct",
+  "pending",
 }
 export type WordleLetter = {
   letter: string;
