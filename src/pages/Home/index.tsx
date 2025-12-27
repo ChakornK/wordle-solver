@@ -9,7 +9,7 @@ import {
 
 import "./style.css";
 import { Constraint, ConstraintProvider } from "../../provider/Constraint";
-import { guessResult, nextWord } from "../../lib/solver";
+import { Constraints, guessResult, nextWord } from "../../lib/solver";
 import { WORDS } from "../../data/wordle/words";
 import { Overlay } from "../../components/Overlay";
 
@@ -271,6 +271,23 @@ const keys = [
   ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
   ["z", "x", "c", "v", "b", "n", "m"],
 ];
+const keyVariants = {
+  [LetterStatus.absent]:
+    "text-text-dark bg-wordle-absent-light dark:bg-wordle-absent-dark",
+  [LetterStatus.present]:
+    "text-text-dark bg-wordle-present-light dark:bg-wordle-present-dark",
+  [LetterStatus.correct]:
+    "text-text-dark bg-wordle-correct-light dark:bg-wordle-correct-dark",
+  [LetterStatus.pending]: "bg-surface-light dark:bg-surface-dark",
+};
+const getKeyVariant = (key: string, constraints: Constraints) => {
+  if (constraints.absent.includes(key)) return keyVariants[LetterStatus.absent];
+  if (Object.values(constraints.correct).includes(key))
+    return keyVariants[LetterStatus.correct];
+  if (Object.values(constraints.incorrect).flat().includes(key))
+    return keyVariants[LetterStatus.present];
+  return keyVariants[LetterStatus.pending];
+};
 const Keyboard = ({
   onInput,
   onEnter,
@@ -280,6 +297,8 @@ const Keyboard = ({
   onEnter: () => void;
   onDelete: () => void;
 }) => {
+  const { constraints } = useContext(Constraint);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
@@ -300,21 +319,31 @@ const Keyboard = ({
     <div class="flex flex-col items-center gap-[0.5em]">
       {keys.map((row, i) => (
         <div
-          class="*:flex *:cursor-pointer *:bg-surface-light dark:*:bg-surface-dark *:rounded *:items-center *:justify-center *:font-bold *:h-14 *:uppercase flex items-stretch gap-[0.375em]"
+          class="*:flex *:cursor-pointer *:rounded *:items-center *:justify-center *:font-bold *:h-14 *:uppercase flex items-stretch gap-[0.375em]"
           key={i}
         >
           {i === keys.length - 1 && (
-            <button class="w-12 text-[0.625em] sm:w-16" onClick={onEnter}>
+            <button
+              class="bg-surface-light dark:bg-surface-dark w-12 text-[0.625em] sm:w-16"
+              onClick={onEnter}
+            >
               enter
             </button>
           )}
           {row.map((key, j) => (
-            <button key={j} class="w-6 sm:w-10" onClick={() => onInput(key)}>
+            <button
+              key={j}
+              class={`w-6 sm:w-10 ${getKeyVariant(key, constraints)}`}
+              onClick={() => onInput(key)}
+            >
               {key}
             </button>
           ))}
           {i === keys.length - 1 && (
-            <button class="w-12 sm:w-16" onClick={onDelete}>
+            <button
+              class="bg-surface-light dark:bg-surface-dark w-12 sm:w-16"
+              onClick={onDelete}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 height="20"
