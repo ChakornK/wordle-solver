@@ -97,7 +97,7 @@ const App = () => {
   return (
     <>
       <div class="m-auto flex h-full w-fit flex-col items-center gap-6">
-        <h1 class="text-4xl font-bold">Wordle Solutions</h1>
+        <h1 class="text-4xl font-bold">Wordle Solver</h1>
 
         <div class="bg-text-light/10 dark:bg-text-dark/10 flex w-full items-center justify-between gap-2 rounded-lg py-4 pl-4 pr-6 text-sm">
           <div>
