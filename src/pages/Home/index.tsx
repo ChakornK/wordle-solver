@@ -329,6 +329,7 @@ const Keyboard = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key === "Enter") {
         onEnter();
       } else if (e.key === "Backspace") {
