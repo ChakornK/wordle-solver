@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useContext, useEffect, useState } from "preact/hooks";
 import { WordleWord } from "../../components/WordleWord";
 import { SOLUTIONS } from "../../data/wordle/solutions";
 import {
@@ -8,12 +8,24 @@ import {
 } from "../../types/wordle";
 
 import "./style.css";
-import { ConstraintProvider } from "../../provider/Constraint";
-import { guessResult } from "../../lib/solver";
+import { Constraint, ConstraintProvider } from "../../provider/Constraint";
+import { guessResult, nextWord } from "../../lib/solver";
 import { WORDS } from "../../data/wordle/words";
 import { Overlay } from "../../components/Overlay";
 
 export const Home = () => {
+  return (
+    <ConstraintProvider>
+      <main class="text-text-light dark:text-text-dark h-full py-8">
+        <App />
+      </main>
+    </ConstraintProvider>
+  );
+};
+
+const App = () => {
+  const { constraints, setConstraints } = useContext(Constraint);
+
   const [rawGuesses, setRawGuesses] = useState<string[]>([]);
   const [pendingGuess, setPendingGuess] = useState<string>("");
   const [guesses, setGuesses] = useState<WordleGuess[]>([]);
@@ -35,60 +47,89 @@ export const Home = () => {
   }, [rawGuesses, targetSolution]);
 
   return (
-    <ConstraintProvider>
-      <main class="text-text-light dark:text-text-dark h-full py-8">
-        <div class="m-auto flex h-full w-fit flex-col items-center gap-6">
-          <h1 class="text-4xl font-bold">Wordle Solutions</h1>
+    <>
+      <div class="m-auto flex h-full w-fit flex-col items-center gap-6">
+        <h1 class="text-4xl font-bold">Wordle Solutions</h1>
 
-          <div class="bg-text-light/10 dark:bg-text-dark/10 flex w-full items-center justify-between gap-2 rounded-lg py-4 pl-4 pr-6 text-sm">
-            <div>
-              <p class="mb-1">
-                Solving{" "}
-                <b>
-                  {targetSolution ===
-                  SOLUTIONS[new Date().toISOString().split("T")[0]].word
-                    ? "today"
-                    : targetSolution &&
-                      new Date(
-                        Object.entries(SOLUTIONS).find(
-                          ([_, { word }]) =>
-                            word.toLowerCase() === targetSolution.toLowerCase()
-                        )[0]
-                      )
-                        .toDateString()
-                        .split(" ")
-                        .slice(1, 3)
-                        .join(" ")}
-                </b>
-                's wordle
-              </p>
-              <WordleWord
-                guess={targetSolution
-                  .split("")
-                  .map((letter) => ({ letter, status: LetterStatus.correct }))}
-              />
-            </div>
-            <button
-              class="bg-text-light dark:bg-text-dark text-bg-light dark:text-bg-dark cursor-pointer rounded-full px-4 py-2"
-              onClick={() => setSolutionSelectorVisible(true)}
-            >
-              Change
-            </button>
+        <div class="bg-text-light/10 dark:bg-text-dark/10 flex w-full items-center justify-between gap-2 rounded-lg py-4 pl-4 pr-6 text-sm">
+          <div>
+            <p class="mb-1">
+              Solving{" "}
+              <b>
+                {targetSolution ===
+                SOLUTIONS[new Date().toISOString().split("T")[0]].word
+                  ? "today"
+                  : targetSolution &&
+                    new Date(
+                      Object.entries(SOLUTIONS).find(
+                        ([_, { word }]) =>
+                          word.toLowerCase() === targetSolution.toLowerCase()
+                      )[0]
+                    )
+                      .toDateString()
+                      .split(" ")
+                      .slice(1, 3)
+                      .join(" ")}
+              </b>
+              's wordle
+            </p>
+            <WordleWord
+              guess={targetSolution
+                .split("")
+                .map((letter) => ({ letter, status: LetterStatus.correct }))}
+            />
           </div>
-
-          <GameBoard guesses={guesses} pending={pendingGuess} />
-          <Keyboard
-            onInput={(k) => setPendingGuess((pendingGuess + k).slice(0, 5))}
-            onEnter={() => {
-              if (pendingGuess.length !== 5) return;
-              if (!WORDS.includes(pendingGuess)) return;
-              setRawGuesses([...rawGuesses, pendingGuess]);
-              setPendingGuess("");
-            }}
-            onDelete={() => setPendingGuess(pendingGuess.slice(0, -1))}
-          />
+          <button
+            class="bg-text-light dark:bg-text-dark text-bg-light dark:text-bg-dark cursor-pointer rounded-full px-4 py-2"
+            onClick={() => setSolutionSelectorVisible(true)}
+          >
+            Change
+          </button>
         </div>
-      </main>
+
+        <GameBoard guesses={guesses} pending={pendingGuess} />
+        <button
+          class="bg-text-light dark:bg-text-dark text-bg-light dark:text-bg-dark cursor-pointer rounded-full px-4 py-2 font-medium"
+          onClick={() => {
+            const w = nextWord(constraints);
+            setRawGuesses([...rawGuesses, w]);
+            setPendingGuess("");
+
+            const res = guessResult(w, targetSolution);
+            const newConstraints = constraints;
+            for (let i = 0; i < 5; i++) {
+              if (res[i].status === LetterStatus.correct) {
+                newConstraints.correct[i] = res[i].letter;
+                if (newConstraints.present.indexOf(res[i].letter) === -1)
+                  newConstraints.present.push(res[i].letter);
+              } else if (res[i].status === LetterStatus.present) {
+                newConstraints.incorrect[i] = [
+                  ...(newConstraints.incorrect[i] || []),
+                  res[i].letter,
+                ];
+                if (newConstraints.present.indexOf(res[i].letter) === -1)
+                  newConstraints.present.push(res[i].letter);
+              } else if (res[i].status === LetterStatus.absent) {
+                newConstraints.absent.push(res[i].letter);
+              }
+            }
+            setConstraints(newConstraints);
+            console.log(newConstraints);
+          }}
+        >
+          Suggest a guess
+        </button>
+        <Keyboard
+          onInput={(k) => setPendingGuess((pendingGuess + k).slice(0, 5))}
+          onEnter={() => {
+            if (pendingGuess.length !== 5) return;
+            if (!WORDS.includes(pendingGuess)) return;
+            setRawGuesses([...rawGuesses, pendingGuess]);
+            setPendingGuess("");
+          }}
+          onDelete={() => setPendingGuess(pendingGuess.slice(0, -1))}
+        />
+      </div>
 
       <Overlay visible={solutionSelectorVisible}>
         <div class="bg-bg-light dark:bg-bg-dark divide-border-faint-light sm:min-w-sm border-border-faint-light/20 dark:border-border-faint-dark/20 dark:divide-border-faint-dark text-text-light dark:text-text-dark absolute left-1/2 top-1/2 flex h-full w-full -translate-x-1/2 -translate-y-1/2 flex-col divide-y overflow-clip rounded border sm:h-fit sm:max-h-[80vh] sm:w-fit">
@@ -119,7 +160,7 @@ export const Home = () => {
           </div>
         </div>
       </Overlay>
-    </ConstraintProvider>
+    </>
   );
 };
 
