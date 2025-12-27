@@ -81,11 +81,10 @@ const App = () => {
   }, [targetSolution]);
 
   useEffect(() => {
-    setGuesses(
-      rawGuesses
-        .slice(0, 6)
-        .map((guess) => guessResult(guess, targetSolution) || [])
-    );
+    const formatted = rawGuesses
+      .slice(0, 6)
+      .map((guess) => guessResult(guess, targetSolution) || []);
+    setGuesses(formatted);
 
     if (rawGuesses.length === 0) return;
 
@@ -95,8 +94,7 @@ const App = () => {
       incorrect: {},
       correct: {},
     };
-    for (const word of rawGuesses) {
-      const res = guessResult(word, targetSolution);
+    for (const res of formatted) {
       for (let i = 0; i < 5; i++) {
         if (res[i].status === LetterStatus.correct) {
           newConstraints.correct[i] = res[i].letter;
@@ -114,6 +112,9 @@ const App = () => {
         }
       }
     }
+    newConstraints.absent = newConstraints.absent.filter(
+      (letter) => !newConstraints.present.includes(letter)
+    );
     setConstraints(newConstraints);
     console.log(newConstraints);
   }, [rawGuesses]);
