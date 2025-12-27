@@ -101,12 +101,18 @@ const letterFreq = (words: string[]) => {
 };
 
 export const guessResult = (guess: string, solution: string) => {
+  const letterCount = {};
+  for (let i = 0; i < 5; i++) {
+    letterCount[solution[i]] = (letterCount[solution[i]] || 0) + 1;
+  }
   const result: WordleGuess = [];
   for (let i = 0; i < guess.length; i++) {
     if (guess[i] === solution[i]) {
       result[i] = { letter: guess[i], status: LetterStatus.correct };
-    } else if (solution.includes(guess[i])) {
+      letterCount[guess[i]] = letterCount[guess[i]] - 1;
+    } else if (solution.includes(guess[i]) && letterCount[guess[i]] > 0) {
       result[i] = { letter: guess[i], status: LetterStatus.present };
+      letterCount[guess[i]] = letterCount[guess[i]] - 1;
     } else {
       result[i] = { letter: guess[i], status: LetterStatus.absent };
     }
