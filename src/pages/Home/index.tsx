@@ -65,7 +65,8 @@ const getWordleDate = (targetSolution: string) => {
       .toDateString()
       .split(" ")
       .slice(1, 3)
-      .join(" ")}'s`;
+      .join(" ")
+      .replace(" 0", " ")}'s`;
   }
   return "custom";
 };
